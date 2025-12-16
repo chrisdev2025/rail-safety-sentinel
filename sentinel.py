@@ -1,26 +1,27 @@
 # sentinel.py
 """
-Rail Safety Automation Dashboard (Streamlit + YOLOv8) — Simplified “Operator-First” Version
+Rail Safety Automation Dashboard (Streamlit + YOLOv8) — Operator-First + YouTube Default
 
-What this does (and why it reduces Visual Inspection Costs):
-- Replaces continuous human video watching with automated hazard detection (exception-based monitoring).
-- Flags only high-risk events (Red Zone Incursions: person OR truck), overlays proof (boxes + confidence),
-  and keeps an incident log for review, compliance, and escalation.
-- Result: fewer staff-hours spent on uneventful footage, faster response to true hazards,
-  and consistent monitoring criteria across shifts and sites.
+Why this reduces Visual Inspection Costs for a railroad:
+- Traditional safety monitoring requires staff to visually inspect long periods of “no event” video.
+- This app automates that task by continuously scanning the feed and flagging ONLY exceptions:
+  Red Zone Incursions (Person OR Truck).
+- Operators review a short incident log (time/type/confidence) instead of watching hours of footage,
+  enabling faster escalation and fewer labor-hours per monitored camera.
 
 Install:
-  pip install streamlit opencv-python ultralytics pandas
-Optional (YouTube Live support):
-  pip install cap_from_youtube
+  python -m pip install --upgrade pip
+  python -m pip install streamlit opencv-python ultralytics pandas
+Optional (YouTube support):
+  python -m pip install cap_from_youtube
 
-Run:
-  streamlit run sentinel.py
+Run (IMPORTANT):
+  python -m streamlit run sentinel.py
 """
 
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import cv2
 import pandas as pd
@@ -37,16 +38,19 @@ except Exception:
 
 
 # =========================
-# Configuration (Operator-friendly defaults)
+# Defaults (Operator-friendly)
 # =========================
 DEFAULT_CONF = 0.35
 DEFAULT_DEBOUNCE_SEC = 2.0
 DEFAULT_FPS_SLEEP = 0.02  # UI smoothness vs CPU usage
 
+# Default YouTube stream (requested)
+DEFAULT_YT_URL = "https://www.youtube.com/watch?v=_DUQnPjPC_8"
+
 # Per requirement: Red Zone Incursion = person OR truck
 INCURSION_CLASSES_BASE = {"person", "truck"}
 
-# Demo scenarios: update these paths to real files on your machine/server
+# Demo scenarios (optional local files)
 SCENARIOS = {
     "Demo A — Standard Crossing": "video1.mp4",
     "Demo B — Pedestrian Hazard": "video2.mp4",
@@ -61,7 +65,7 @@ FRIENDLY_LABELS = {
 
 
 # =========================
-# Session state
+# Session State
 # =========================
 def init_state():
     if "running" not in st.session_state:
@@ -80,6 +84,8 @@ def init_state():
         st.session_state.reconnect_attempts = 0
     if "last_frame_time" not in st.session_state:
         st.session_state.last_frame_time = None
+    if "autostart_done" not in st.session_state:
+        st.session_state.autostart_done = False
 
 
 def reset_runtime_only():
@@ -121,7 +127,7 @@ def render_status(is_incursion: bool, people_count: int, incursion_types: List[s
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 10px 24px rgba(0,0,0,0.20);
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         ">
             <div>
                 <div>{text}</div>
@@ -143,16 +149,16 @@ def render_status(is_incursion: bool, people_count: int, incursion_types: List[s
 def show_checklist():
     st.markdown(
         """
-        **Setup Checklist**
-        1) Choose a **Camera Source**  
-        2) Click **START MONITORING**  
-        3) Watch the **Status** and **Incident Log**
+        **Operator Quick Start**
+        1) Confirm **Camera Source**  
+        2) Click **START MONITORING** (or let Auto-Start run)  
+        3) Watch **Status** and **Incident Log**
         """
     )
 
 
 # =========================
-# Vision helpers
+# Vision Helpers
 # =========================
 def bgr_to_rgb(img_bgr):
     return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
@@ -163,17 +169,24 @@ def draw_boxes(frame_bgr, detections: List[Dict[str, Any]]) -> None:
         x1, y1, x2, y2 = det["xyxy"]
         cls = det["cls_name"]
         label = f'{FRIENDLY_LABELS.get(cls, cls)}  {det["conf"]:.0%}'
-        color = (0, 255, 0)
+
+        color = (0, 255, 0)            # green normal
         if det["is_incursion"]:
-            color = (0, 0, 255)
+            color = (0, 0, 255)        # red incursion
 
         cv2.rectangle(frame_bgr, (x1, y1), (x2, y2), color, 2)
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
         y0 = max(0, y1 - th - 10)
         cv2.rectangle(frame_bgr, (x1, y0), (x1 + tw + 8, y1), color, -1)
         cv2.putText(
-            frame_bgr, label, (x1 + 4, y1 - 6),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA
+            frame_bgr,
+            label,
+            (x1 + 4, y1 - 6),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
         )
 
 
@@ -199,12 +212,14 @@ def infer_frame(model: YOLO, frame_bgr, conf_threshold: float, incursion_classes
             if is_incursion:
                 incursion_hits.append((cls_name, conf))
 
-            detections.append({
-                "cls_name": cls_name,
-                "conf": conf,
-                "xyxy": (x1, y1, x2, y2),
-                "is_incursion": is_incursion,
-            })
+            detections.append(
+                {
+                    "cls_name": cls_name,
+                    "conf": conf,
+                    "xyxy": (x1, y1, x2, y2),
+                    "is_incursion": is_incursion,
+                }
+            )
 
     return {
         "detections": detections,
@@ -215,7 +230,7 @@ def infer_frame(model: YOLO, frame_bgr, conf_threshold: float, incursion_classes
 
 
 # =========================
-# Stream helpers
+# Stream Helpers
 # =========================
 def release_capture():
     cap = st.session_state.get("cap", None)
@@ -240,7 +255,7 @@ def start_stream(source_type: str, path_or_index: Any):
     try:
         if source_type == "YouTube Live":
             if not HAS_YOUTUBE:
-                st.error("YouTube Live requires: pip install cap_from_youtube")
+                st.error("YouTube Live requires: python -m pip install cap_from_youtube")
                 st.session_state.running = False
                 return
             cap = cap_from_youtube(path_or_index, resolution="720p")  # type: ignore[misc]
@@ -273,31 +288,32 @@ def append_incidents(rows: List[Dict[str, Any]], max_rows: int = 800) -> None:
     if not rows:
         return
     df_new = pd.DataFrame(rows)
-    st.session_state.incident_log = pd.concat([df_new, st.session_state.incident_log], ignore_index=True).head(max_rows)
+    st.session_state.incident_log = pd.concat(
+        [df_new, st.session_state.incident_log],
+        ignore_index=True
+    ).head(max_rows)
 
 
-def log_incursions_debounced(
-    incursion_hits: List[Tuple[str, float]],
-    min_interval_sec: float,
-    source_label: str
-) -> None:
+def log_incursions_debounced(incursion_hits: List[Tuple[str, float]], min_interval_sec: float, source_label: str) -> None:
     now = time.time()
     rows = []
     for cls_name, conf in incursion_hits:
         last = st.session_state.last_log_ts.get(cls_name, 0.0)
         if (now - last) >= min_interval_sec:
             st.session_state.last_log_ts[cls_name] = now
-            rows.append({
-                "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Type": FRIENDLY_LABELS.get(cls_name, cls_name),
-                "Confidence": f"{conf:.0%}",
-                "Source": source_label,
-            })
+            rows.append(
+                {
+                    "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Type": FRIENDLY_LABELS.get(cls_name, cls_name),
+                    "Confidence": f"{conf:.0%}",
+                    "Source": source_label,
+                }
+            )
     append_incidents(rows)
 
 
 def is_likely_file_path(s: str) -> bool:
-    s2 = s.lower().strip()
+    s2 = str(s).lower().strip()
     return s2.endswith((".mp4", ".mov", ".avi", ".mkv", ".webm"))
 
 
@@ -315,25 +331,27 @@ def load_model():
 
 model = load_model()
 
-# ---------- Sidebar: simplified “wizard” ----------
+# ---------- Sidebar (YouTube default + operator-first) ----------
 with st.sidebar:
     st.header("Operator Setup")
     show_checklist()
     st.divider()
 
+    camera_sources = ["Demo Scenario", "Webcam", "RTSP/HTTP Stream", "YouTube Live"]
+    default_index = 3 if HAS_YOUTUBE else 0
+
     source_choice = st.selectbox(
         "Camera Source",
-        ["Demo Scenario", "Webcam", "RTSP/HTTP Stream", "YouTube Live"],
-        index=0,
+        camera_sources,
+        index=default_index,
     )
 
-    # Only show the one input relevant to the chosen source
     source_value: Any = None
 
     if source_choice == "Demo Scenario":
         selected = st.selectbox("Scenario", list(SCENARIOS.keys()))
         source_value = SCENARIOS[selected]
-        st.caption("Update demo video file paths at the top of this script.")
+        st.caption("Optional: put small demo MP4s next to this script or update SCENARIOS paths.")
 
     elif source_choice == "Webcam":
         cam_index = st.number_input("Camera Index", value=0, step=1)
@@ -343,7 +361,7 @@ with st.sidebar:
         source_value = st.text_input(
             "Stream URL",
             value="rtsp://user:pass@192.168.1.55:554/stream",
-            help="Paste RTSP or HTTP stream URL. Must be OpenCV VideoCapture compatible.",
+            help="Paste RTSP or HTTP stream URL (OpenCV VideoCapture compatible).",
         )
 
     elif source_choice == "YouTube Live":
@@ -351,29 +369,26 @@ with st.sidebar:
             st.warning("YouTube Live disabled (install cap_from_youtube).")
         source_value = st.text_input(
             "YouTube URL",
-            value="https://www.youtube.com/watch?v=SomeLiveStreamID",
-            help="Optional testing source. Requires cap_from_youtube.",
+            value=DEFAULT_YT_URL,
+            help="Default set to the provided rail stream. Requires cap_from_youtube.",
         )
 
     st.divider()
 
-    # Big, obvious Start/Stop
-    col1, col2 = st.columns(2)
-    with col1:
+    c1, c2 = st.columns(2)
+    with c1:
         start_disabled = (source_choice == "YouTube Live" and not HAS_YOUTUBE)
         if st.button("START MONITORING", use_container_width=True, disabled=start_disabled):
             start_stream(source_choice, source_value)
-
-    with col2:
+    with c2:
         if st.button("STOP", use_container_width=True):
             stop_stream()
 
-    col3, col4 = st.columns(2)
-    with col3:
+    c3, c4 = st.columns(2)
+    with c3:
         if st.button("CLEAR LOG", use_container_width=True):
             clear_log()
-    with col4:
-        # optional: reload without touching the log
+    with c4:
         if st.button("RESET STREAM", use_container_width=True):
             src = st.session_state.source or {}
             if src:
@@ -381,15 +396,14 @@ with st.sidebar:
 
     st.divider()
 
-    # Advanced settings (hidden by default)
     with st.expander("Advanced Settings (Engineering)", expanded=False):
         conf_threshold = st.slider("Detection Confidence", 0.05, 0.95, DEFAULT_CONF, 0.05)
         log_interval_sec = st.slider("Log Debounce (sec)", 0.5, 10.0, DEFAULT_DEBOUNCE_SEC, 0.5)
         expand_vehicles = st.checkbox("Also treat Car/Bus as incursion", value=False)
         loop_sleep = st.slider("Loop Sleep (sec)", 0.0, 0.10, DEFAULT_FPS_SLEEP, 0.01)
-        st.caption("Defaults are set for operators. Only tune if needed.")
+        st.caption("Defaults are operator-safe. Tune only if needed.")
 
-# Defaults if Advanced expander never opened
+# Defaults if Advanced never opened
 if "conf_threshold" not in locals():
     conf_threshold = DEFAULT_CONF
 if "log_interval_sec" not in locals():
@@ -399,12 +413,20 @@ if "expand_vehicles" not in locals():
 if "loop_sleep" not in locals():
     loop_sleep = DEFAULT_FPS_SLEEP
 
+# Auto-start YouTube once (smooth out-of-box)
+# - Only triggers on first page load
+# - Only if YouTube support is installed
+if HAS_YOUTUBE and not st.session_state.running and not st.session_state.autostart_done:
+    st.session_state.autostart_done = True
+    start_stream("YouTube Live", DEFAULT_YT_URL)
+    st.rerun()
+
 # ---------- Main Layout ----------
+status_bar = st.empty()
 left, right = st.columns([1.6, 1.0], gap="large")
 
 with left:
     st.subheader("Live Feed")
-    status_slot = st.empty()
     video_slot = st.empty()
     health_slot = st.empty()
 
@@ -413,8 +435,9 @@ with right:
     log_slot = st.empty()
     st.caption("Newest events appear at the top (debounced).")
 
-# Idle state
+# Idle state (happens if YouTube not available or user stopped)
 if not st.session_state.running:
+    status_bar.empty()
     render_status(False, 0, [])
     video_slot.info("Choose a Camera Source in the sidebar, then click START MONITORING.")
     health_slot.caption("Stream Health: Not running")
@@ -451,13 +474,21 @@ if not ret or frame is None:
         log_slot.dataframe(st.session_state.incident_log, use_container_width=True, height=540, hide_index=True)
         st.stop()
 
-    # Live sources: best-effort reconnect
+    # Live sources (including YouTube): best-effort reconnect
     st.session_state.reconnect_attempts += 1
-    video_slot.warning(f"Stream read failed. Retrying... (attempt {st.session_state.reconnect_attempts})")
-    time.sleep(0.25)
-    # One quick restart using stored source
+    video_slot.warning(f"Stream read failed. Retrying... (attempt {st.session_state.reconnect_attempts}/10)")
+    time.sleep(0.35)
+
     if st.session_state.reconnect_attempts <= 10 and st.session_state.source:
+        # Re-open same source type/path
         start_stream(src.get("type", "RTSP/HTTP Stream"), src.get("path"))
+    else:
+        stop_stream()
+        render_status(False, 0, [])
+        video_slot.error("Stream could not be recovered. Press START MONITORING to retry.")
+        log_slot.dataframe(st.session_state.incident_log, use_container_width=True, height=540, hide_index=True)
+        st.stop()
+
     st.rerun()
 
 # Reset reconnect counter on success
@@ -478,7 +509,7 @@ incursion_hits = out["incursion_hits"]
 
 draw_boxes(frame, detections)
 
-# Log events
+# Log events (debounced)
 src_label = (st.session_state.source or {}).get("type", "unknown")
 if is_incursion:
     log_incursions_debounced(incursion_hits, float(log_interval_sec), source_label=str(src_label))
@@ -498,7 +529,7 @@ health_slot.caption(
     f"FPS: {fps:.1f} | Resolution: {w}x{h} | Last Frame: {st.session_state.last_frame_time}"
 )
 
-# Incident log (scrollable via height)
+# Incident log
 log_slot.dataframe(st.session_state.incident_log, use_container_width=True, height=540, hide_index=True)
 
 # Loop pacing
