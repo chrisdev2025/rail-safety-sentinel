@@ -9,7 +9,7 @@ Why this reduces Visual Inspection Costs for a railroad:
 - Operators review a short incident log (time/type/confidence) instead of watching hours of footage,
   enabling faster escalation and fewer labor-hours per monitored camera.
 
-Install:
+Install (Windows / any PC):
   python -m pip install --upgrade pip
   python -m pip install streamlit opencv-python ultralytics pandas
 Optional (YouTube support):
@@ -17,10 +17,15 @@ Optional (YouTube support):
 
 Run (IMPORTANT):
   python -m streamlit run sentinel.py
+
+Strongly recommended for “works offline / on Streamlit Cloud”:
+- Download yolov8n.pt ONCE and place it next to sentinel.py
+  (so Ultralytics doesn't need to fetch weights at runtime)
 """
 
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import cv2
@@ -28,7 +33,7 @@ import pandas as pd
 import streamlit as st
 from ultralytics import YOLO
 
-# Optional YouTube support (kept non-fatal if not installed)
+# Optional YouTube support (non-fatal if not installed)
 try:
     from cap_from_youtube import cap_from_youtube  # type: ignore
     HAS_YOUTUBE = True
@@ -44,13 +49,13 @@ DEFAULT_CONF = 0.35
 DEFAULT_DEBOUNCE_SEC = 2.0
 DEFAULT_FPS_SLEEP = 0.02  # UI smoothness vs CPU usage
 
-# Default YouTube stream (requested)
+# Default YouTube stream
 DEFAULT_YT_URL = "https://www.youtube.com/watch?v=_DUQnPjPC_8"
 
 # Per requirement: Red Zone Incursion = person OR truck
 INCURSION_CLASSES_BASE = {"person", "truck"}
 
-# Demo scenarios (optional local files)
+# Optional demo scenarios (local files)
 SCENARIOS = {
     "Demo A — Standard Crossing": "video1.mp4",
     "Demo B — Pedestrian Hazard": "video2.mp4",
@@ -150,8 +155,8 @@ def show_checklist():
     st.markdown(
         """
         **Operator Quick Start**
-        1) Confirm **Camera Source**  
-        2) Click **START MONITORING** (or let Auto-Start run)  
+        1) Confirm **Camera Source**
+        2) Click **START MONITORING** (or let Auto-Start run)
         3) Watch **Status** and **Incident Log**
         """
     )
@@ -230,6 +235,40 @@ def infer_frame(model: YOLO, frame_bgr, conf_threshold: float, incursion_classes
 
 
 # =========================
+# Model loading (robust)
+# =========================
+def get_local_weight_path() -> Path:
+    # Prefer weights next to this file for “works out of the box”
+    return Path(__file__).with_name("yolov8n.pt")
+
+
+@st.cache_resource
+def load_model():
+    """
+    Robust model load:
+    - If yolov8n.pt exists next to sentinel.py, use it (no network dependency).
+    - Else, attempt standard YOLO("yolov8n.pt") which triggers Ultralytics download.
+      If download fails, show a clear operator action.
+    """
+    w = get_local_weight_path()
+    if w.exists():
+        return YOLO(str(w))
+
+    try:
+        # This may attempt download if not present in Ultralytics cache
+        return YOLO("yolov8n.pt")
+    except Exception as e:
+        st.error(
+            "YOLO weights are missing and auto-download failed.\n\n"
+            "Fix (recommended):\n"
+            "1) Download yolov8n.pt into the SAME folder as sentinel.py\n"
+            "2) Re-run:  python -m streamlit run sentinel.py\n\n"
+            f"Details: {e}"
+        )
+        st.stop()
+
+
+# =========================
 # Stream Helpers
 # =========================
 def release_capture():
@@ -248,6 +287,27 @@ def stop_stream():
     reset_runtime_only()
 
 
+def open_youtube_capture(url: str):
+    """
+    cap_from_youtube can fail for a requested resolution if that stream doesn't provide it.
+    We try a prioritized list and fall back to 'best'.
+    """
+    if not HAS_YOUTUBE:
+        raise RuntimeError("cap_from_youtube not installed")
+
+    # Try common resolutions in descending preference, then "best"
+    candidates = ["1080p", "720p", "480p", "360p", "best"]
+    last_err = None
+    for res in candidates:
+        try:
+            cap = cap_from_youtube(url, resolution=res)  # type: ignore[misc]
+            return cap, res
+        except Exception as e:
+            last_err = e
+            continue
+    raise RuntimeError(f"Could not open YouTube stream at any resolution. Last error: {last_err}")
+
+
 def start_stream(source_type: str, path_or_index: Any):
     release_capture()
 
@@ -258,16 +318,17 @@ def start_stream(source_type: str, path_or_index: Any):
                 st.error("YouTube Live requires: python -m pip install cap_from_youtube")
                 st.session_state.running = False
                 return
-            cap = cap_from_youtube(path_or_index, resolution="720p")  # type: ignore[misc]
+            cap, chosen_res = open_youtube_capture(str(path_or_index))
+            st.session_state.source = {"type": source_type, "path": str(path_or_index), "res": chosen_res}
         else:
             cap = cv2.VideoCapture(path_or_index)
+            st.session_state.source = {"type": source_type, "path": path_or_index}
     except Exception as e:
         st.error(f"Could not start stream: {e}")
         st.session_state.running = False
         return
 
     st.session_state.cap = cap
-    st.session_state.source = {"type": source_type, "path": path_or_index}
     st.session_state.running = True
     reset_runtime_only()
 
@@ -325,10 +386,6 @@ init_state()
 
 st.title("Rail Safety Automation Dashboard")
 
-@st.cache_resource
-def load_model():
-    return YOLO("yolov8n.pt")
-
 model = load_model()
 
 # ---------- Sidebar (YouTube default + operator-first) ----------
@@ -337,8 +394,8 @@ with st.sidebar:
     show_checklist()
     st.divider()
 
-    camera_sources = ["Demo Scenario", "Webcam", "RTSP/HTTP Stream", "YouTube Live"]
-    default_index = 3 if HAS_YOUTUBE else 0
+    camera_sources = ["YouTube Live", "Webcam", "RTSP/HTTP Stream", "Demo Scenario"]
+    default_index = 0 if HAS_YOUTUBE else 3
 
     source_choice = st.selectbox(
         "Camera Source",
@@ -348,10 +405,14 @@ with st.sidebar:
 
     source_value: Any = None
 
-    if source_choice == "Demo Scenario":
-        selected = st.selectbox("Scenario", list(SCENARIOS.keys()))
-        source_value = SCENARIOS[selected]
-        st.caption("Optional: put small demo MP4s next to this script or update SCENARIOS paths.")
+    if source_choice == "YouTube Live":
+        if not HAS_YOUTUBE:
+            st.warning("YouTube Live disabled (install cap_from_youtube).")
+        source_value = st.text_input(
+            "YouTube URL",
+            value=DEFAULT_YT_URL,
+            help="Default set to the provided rail stream. Requires cap_from_youtube.",
+        )
 
     elif source_choice == "Webcam":
         cam_index = st.number_input("Camera Index", value=0, step=1)
@@ -364,14 +425,10 @@ with st.sidebar:
             help="Paste RTSP or HTTP stream URL (OpenCV VideoCapture compatible).",
         )
 
-    elif source_choice == "YouTube Live":
-        if not HAS_YOUTUBE:
-            st.warning("YouTube Live disabled (install cap_from_youtube).")
-        source_value = st.text_input(
-            "YouTube URL",
-            value=DEFAULT_YT_URL,
-            help="Default set to the provided rail stream. Requires cap_from_youtube.",
-        )
+    elif source_choice == "Demo Scenario":
+        selected = st.selectbox("Scenario", list(SCENARIOS.keys()))
+        source_value = SCENARIOS[selected]
+        st.caption("Optional: put small demo MP4s next to this script or update SCENARIOS paths.")
 
     st.divider()
 
@@ -380,6 +437,7 @@ with st.sidebar:
         start_disabled = (source_choice == "YouTube Live" and not HAS_YOUTUBE)
         if st.button("START MONITORING", use_container_width=True, disabled=start_disabled):
             start_stream(source_choice, source_value)
+
     with c2:
         if st.button("STOP", use_container_width=True):
             stop_stream()
@@ -401,7 +459,6 @@ with st.sidebar:
         log_interval_sec = st.slider("Log Debounce (sec)", 0.5, 10.0, DEFAULT_DEBOUNCE_SEC, 0.5)
         expand_vehicles = st.checkbox("Also treat Car/Bus as incursion", value=False)
         loop_sleep = st.slider("Loop Sleep (sec)", 0.0, 0.10, DEFAULT_FPS_SLEEP, 0.01)
-        st.caption("Defaults are operator-safe. Tune only if needed.")
 
 # Defaults if Advanced never opened
 if "conf_threshold" not in locals():
@@ -414,15 +471,12 @@ if "loop_sleep" not in locals():
     loop_sleep = DEFAULT_FPS_SLEEP
 
 # Auto-start YouTube once (smooth out-of-box)
-# - Only triggers on first page load
-# - Only if YouTube support is installed
 if HAS_YOUTUBE and not st.session_state.running and not st.session_state.autostart_done:
     st.session_state.autostart_done = True
     start_stream("YouTube Live", DEFAULT_YT_URL)
     st.rerun()
 
 # ---------- Main Layout ----------
-status_bar = st.empty()
 left, right = st.columns([1.6, 1.0], gap="large")
 
 with left:
@@ -435,9 +489,8 @@ with right:
     log_slot = st.empty()
     st.caption("Newest events appear at the top (debounced).")
 
-# Idle state (happens if YouTube not available or user stopped)
+# Idle state
 if not st.session_state.running:
-    status_bar.empty()
     render_status(False, 0, [])
     video_slot.info("Choose a Camera Source in the sidebar, then click START MONITORING.")
     health_slot.caption("Stream Health: Not running")
@@ -455,7 +508,7 @@ except Exception:
 if not cap_opened:
     stop_stream()
     render_status(False, 0, [])
-    video_slot.error("Could not open camera/stream. Check URL/path, credentials, or camera availability.")
+    video_slot.error("Could not open camera/stream. Check URL/path, credentials, camera availability, or YouTube access.")
     log_slot.dataframe(st.session_state.incident_log, use_container_width=True, height=540, hide_index=True)
     st.stop()
 
@@ -474,22 +527,20 @@ if not ret or frame is None:
         log_slot.dataframe(st.session_state.incident_log, use_container_width=True, height=540, hide_index=True)
         st.stop()
 
-    # Live sources (including YouTube): best-effort reconnect
+    # Live sources: best-effort reconnect
     st.session_state.reconnect_attempts += 1
     video_slot.warning(f"Stream read failed. Retrying... (attempt {st.session_state.reconnect_attempts}/10)")
     time.sleep(0.35)
 
     if st.session_state.reconnect_attempts <= 10 and st.session_state.source:
-        # Re-open same source type/path
         start_stream(src.get("type", "RTSP/HTTP Stream"), src.get("path"))
+        st.rerun()
     else:
         stop_stream()
         render_status(False, 0, [])
         video_slot.error("Stream could not be recovered. Press START MONITORING to retry.")
         log_slot.dataframe(st.session_state.incident_log, use_container_width=True, height=540, hide_index=True)
         st.stop()
-
-    st.rerun()
 
 # Reset reconnect counter on success
 st.session_state.reconnect_attempts = 0
@@ -509,8 +560,12 @@ incursion_hits = out["incursion_hits"]
 
 draw_boxes(frame, detections)
 
-# Log events (debounced)
-src_label = (st.session_state.source or {}).get("type", "unknown")
+# Log events
+src_info = st.session_state.source or {}
+src_label = src_info.get("type", "unknown")
+if src_label == "YouTube Live" and "res" in src_info:
+    src_label = f"YouTube Live ({src_info['res']})"
+
 if is_incursion:
     log_incursions_debounced(incursion_hits, float(log_interval_sec), source_label=str(src_label))
 
@@ -523,10 +578,9 @@ video_slot.image(bgr_to_rgb(frame), channels="RGB", use_container_width=True)
 # Stream health indicators
 fps = compute_fps()
 h, w = frame.shape[:2]
-src_info = st.session_state.source or {}
 health_slot.caption(
-    f"Stream Health — Connected: Yes | Source: {src_info.get('type', 'unknown')} | "
-    f"FPS: {fps:.1f} | Resolution: {w}x{h} | Last Frame: {st.session_state.last_frame_time}"
+    f"Stream Health — Connected: Yes | Source: {src_label} | FPS: {fps:.1f} | "
+    f"Resolution: {w}x{h} | Last Frame: {st.session_state.last_frame_time}"
 )
 
 # Incident log
