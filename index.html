@@ -272,6 +272,21 @@
   .two{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
   @media (max-width:520px){ .two{ grid-template-columns:1fr; } }
   .form-note{ font-size:.82rem; color:var(--ink-soft); margin-top:.2rem; }
+  .form-note.is-error{ color:var(--oxblood); font-weight:600; }
+  @media (prefers-color-scheme: dark){ .form-note.is-error{ color:var(--brass-lit); } }
+  :root[data-theme="dark"] .form-note.is-error{ color:var(--brass-lit); }
+  :root[data-theme="light"] .form-note.is-error{ color:var(--oxblood); }
+  .btn-spin{ display:none; }
+  #submit-btn.is-sending{ pointer-events:none; opacity:.85; }
+  #submit-btn.is-sending .btn-arrow{ display:none; }
+  #submit-btn.is-sending .btn-spin{ display:block; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ #submit-btn.is-sending .btn-spin{ animation:none; } }
+  .form-success{ background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--brass); border-radius:var(--radius); padding:1.8rem 1.7rem; text-align:left; }
+  .form-success svg{ width:2.4rem; height:2.4rem; color:var(--brass); }
+  .form-success h3{ font-size:var(--step-2); margin-top:1rem; }
+  .form-success p{ color:var(--ink-soft); margin-top:.6rem; font-size:.98rem; max-width:42ch; }
+  .form-success a{ color:var(--brass); text-decoration:underline; text-underline-offset:2px; }
   .contact-aside .eyebrow{ margin-bottom:.9rem; }
   .contact-aside h2{ font-size:var(--step-3); }
   .contact-aside p{ color:var(--ink-soft); margin-top:1rem; font-size:var(--step-0); max-width:40ch; }
@@ -550,6 +565,9 @@
       </div>
 
       <form class="form reveal d1" id="briefing-form" novalidate>
+        <!-- Honeypot: hidden from people, catches bots. Do not remove. -->
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;" />
+        <input type="hidden" name="_subject" value="Virtellect briefing request" />
         <div class="two">
           <div class="field">
             <label for="name">Name</label>
@@ -595,11 +613,19 @@
           <label for="message">Anything we should know?</label>
           <textarea id="message" name="message" placeholder="Case volume, current systems, what you want to fix first…"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary" style="justify-content:center; padding:.85em 1.25em;">Request my briefing
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <button type="submit" id="submit-btn" class="btn btn-primary" style="justify-content:center; padding:.85em 1.25em;">
+          <span class="btn-label">Request my briefing</span>
+          <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <svg class="btn-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>
         </button>
-        <p class="form-note" id="form-note">We reply within one business day. No spam, no lists — just a conversation.</p>
+        <p class="form-note" id="form-note" role="status" aria-live="polite">We reply within one business day. No spam, no lists — just a conversation.</p>
       </form>
+
+      <div class="form-success reveal d1" id="form-success" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/></svg>
+        <h3>Request received.</h3>
+        <p>Thanks — we’ve got your details and we’ll be in touch within one business day. If it’s urgent, reach us directly at <a href="mailto:hello@virtellect.ai">hello@virtellect.ai</a>.</p>
+      </div>
     </div>
   </section>
 </main>
@@ -674,24 +700,80 @@
     reveals.forEach(function(el){ el.classList.add('in-view'); });
   }
 
-  // Contact form — graceful mailto handoff until a backend is wired up
+  /* ------------------------------------------------------------------ *
+   * Contact form
+   * ------------------------------------------------------------------ *
+   * To capture leads for real, paste your form endpoint below. Any of
+   * these work with no code changes — they all accept a POST of the form
+   * fields and return JSON:
+   *   • Formspree   → "https://formspree.io/f/xxxxxxx"
+   *   • Web3Forms   → "https://api.web3forms.com/submit"  (add your
+   *                    access key as a hidden <input name="access_key">)
+   *   • Basin       → "https://usebasin.com/f/xxxxxxxx"
+   *   • Getform     → "https://getform.io/f/xxxxxxx"
+   * Leave it as "" and the form gracefully falls back to opening the
+   * visitor's email client to hello@virtellect.ai.
+   * ------------------------------------------------------------------ */
+  var FORM_ENDPOINT = "";
+  var CONTACT_EMAIL = "hello@virtellect.ai";
+
   var form = document.getElementById('briefing-form');
   var note = document.getElementById('form-note');
+  var btn  = document.getElementById('submit-btn');
+  var successPanel = document.getElementById('form-success');
+
+  function setNote(text, isError){
+    note.textContent = text;
+    note.classList.toggle('is-error', !!isError);
+  }
+  function buildEmailBody(d){
+    return 'Name: '+(d.get('name')||'')+'\n'
+         + 'Firm: '+(d.get('firm')||'')+'\n'
+         + 'Email: '+(d.get('email')||'')+'\n'
+         + 'Role: '+(d.get('role')||'')+'\n'
+         + 'Priority: '+(d.get('caseload')||'')+'\n\n'
+         + (d.get('message')||'');
+  }
+  function mailtoFallback(d){
+    var href = 'mailto:'+CONTACT_EMAIL+'?subject='
+             + encodeURIComponent('Briefing request — '+(d.get('firm')||'New inquiry'))
+             + '&body=' + encodeURIComponent(buildEmailBody(d));
+    setNote('Opening your email client… if nothing happens, write us at '+CONTACT_EMAIL+'.');
+    window.location.href = href;
+  }
+  function showSuccess(){
+    form.hidden = true;
+    successPanel.hidden = false;
+    successPanel.classList.add('in-view');
+    successPanel.setAttribute('tabindex','-1');
+    successPanel.focus({ preventScroll:true });
+  }
+
   form.addEventListener('submit', function(ev){
     ev.preventDefault();
+    if (form.querySelector('[name="_gotcha"]').value){ return; } // bot trap
     if (!form.checkValidity()){ form.reportValidity(); return; }
+
     var d = new FormData(form);
-    var body = 'Name: '+(d.get('name')||'')+'\n'
-             + 'Firm: '+(d.get('firm')||'')+'\n'
-             + 'Email: '+(d.get('email')||'')+'\n'
-             + 'Role: '+(d.get('role')||'')+'\n'
-             + 'Priority: '+(d.get('caseload')||'')+'\n\n'
-             + (d.get('message')||'');
-    var href = 'mailto:hello@virtellect.ai?subject='
-             + encodeURIComponent('Briefing request — '+(d.get('firm')||'New inquiry'))
-             + '&body=' + encodeURIComponent(body);
-    note.textContent = 'Opening your email client… if nothing happens, write us at hello@virtellect.ai.';
-    window.location.href = href;
+
+    if (!FORM_ENDPOINT){ mailtoFallback(d); return; }
+
+    btn.classList.add('is-sending');
+    btn.disabled = true;
+    setNote('Sending your request…');
+
+    fetch(FORM_ENDPOINT, {
+      method: 'POST',
+      body: d,
+      headers: { 'Accept': 'application/json' }
+    }).then(function(res){
+      if (res.ok){ showSuccess(); return; }
+      throw new Error('Bad response ' + res.status);
+    }).catch(function(){
+      btn.classList.remove('is-sending');
+      btn.disabled = false;
+      setNote('Something went wrong sending that. Please email us directly at '+CONTACT_EMAIL+'.', true);
+    });
   });
 })();
 </script>

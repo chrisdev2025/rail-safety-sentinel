@@ -39,12 +39,29 @@ Because it's a static file, any static host works:
 
 Point the `virtellect.ai` domain at whichever host you choose.
 
+## Wiring up the contact form (2 minutes)
+
+The form is ready for real lead capture — it just needs an endpoint. It submits over AJAX
+with a sending → success/error flow, includes a honeypot for spam, and (until you add an
+endpoint) falls back to opening the visitor's email client.
+
+1. Create a free form endpoint with any of these — no code changes needed for any of them:
+   - **Formspree** — sign up, create a form, copy the URL `https://formspree.io/f/xxxxxxx`
+   - **Web3Forms** — get an access key by email, use `https://api.web3forms.com/submit`
+     and add `<input type="hidden" name="access_key" value="YOUR-KEY">` inside the form
+   - **Basin** — `https://usebasin.com/f/xxxxxxxx`
+   - **Getform** — `https://getform.io/f/xxxxxxx`
+2. In `index.html`, find `var FORM_ENDPOINT = "";` (near the bottom, in the `<script>`) and
+   paste your URL between the quotes.
+3. That's it. Submissions now land in your dashboard/inbox and visitors see an inline
+   "Request received" confirmation.
+
 ## Before you go live — quick checklist
 
-- [ ] **Wire up the contact form.** It currently hands off to `mailto:hello@virtellect.ai`.
-      For real lead capture, point the form at a backend (Formspree, Basin, a Netlify form,
-      or your own endpoint). Search `briefing-form` in `index.html`.
-- [ ] **Set the real inbox.** Replace `hello@virtellect.ai` everywhere with your address.
+- [ ] **Add your form endpoint** (see above). Left blank, the form opens the visitor's
+      email client to `hello@virtellect.ai` instead of capturing the lead on a server.
+- [ ] **Set the real inbox.** Replace `hello@virtellect.ai` everywhere with your address
+      (it appears in the form fallback `CONTACT_EMAIL`, the contact section, and the footer).
 - [ ] **Confirm the claims.** The security/handling language describes intended practices —
       make sure it matches what Virtellect actually does before publishing.
 - [ ] **Add real proof** when you have it — client outcomes, a named case study, logos.
