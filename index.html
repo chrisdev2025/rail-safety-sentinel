@@ -3,15 +3,27 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Virtellect — AI built for the injury file</title>
-<meta name="description" content="Virtellect deploys AI trained for personal injury and PIP practices: it reads the medical records, drafts the demand, watches the deadlines, and answers the client — with a human always in the loop." />
+<title>Virtellect — AI for PIP law offices &amp; injury clinics</title>
+<meta name="description" content="Virtellect deploys AI built for the injury file: it reads the records, drafts the demands, tracks every claim and deadline, and keeps clients and patients informed — with your team always in the loop." />
 <meta name="theme-color" content="#5A1B2E" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#17110E" media="(prefers-color-scheme: dark)" />
+<link rel="canonical" href="https://virtellect.ai/" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="Virtellect — AI built for the injury file" />
-<meta property="og:description" content="AI trained for personal injury and PIP practices. It reads the records, drafts the demand, watches the deadlines, and answers the client — with a human always in the loop." />
-<meta property="og:url" content="https://virtellect.ai" />
+<meta property="og:site_name" content="Virtellect" />
+<meta property="og:title" content="AI built for the injury file." />
+<meta property="og:description" content="For PIP law offices & injury clinics — records read, demands drafted, claims tracked, deadlines watched. Your team stays in the loop." />
+<meta property="og:url" content="https://virtellect.ai/" />
+<meta property="og:image" content="https://virtellect.ai/og-card.png" />
+<meta property="og:image:width" content="2400" />
+<meta property="og:image:height" content="1260" />
+<meta property="og:image:alt" content="Virtellect — AI built for the injury file. Records read, demands drafted, deadlines watched. For PIP law offices and injury clinics." />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="AI built for the injury file." />
+<meta name="twitter:description" content="For PIP law offices & injury clinics — records read, demands drafted, claims tracked, deadlines watched." />
+<meta name="twitter:image" content="https://virtellect.ai/og-card.png" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"Virtellect","url":"https://virtellect.ai/","email":"hello@virtellect.ai","description":"AI for PIP law offices and injury clinics — records read, demands drafted, claims tracked, deadlines watched.","logo":"https://virtellect.ai/og-card.png"}
+</script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%235A1B2E'/%3E%3Cpath%20d='M18%2019l14%2028%2014-28'%20fill='none'%20stroke='%23C69A4E'%20stroke-width='6'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E" />
 </head>
 <body>
@@ -208,6 +220,17 @@
   .sec-head h2{ font-size:var(--step-3); margin-top:.7rem; }
   .sec-head p{ color:var(--ink-soft); font-size:var(--step-1); margin-top:1rem; line-height:1.5; max-width:52ch; }
 
+  /* ---------- Who it's for ---------- */
+  .who-grid{ display:grid; grid-template-columns:1fr 1fr; gap:1.6rem; }
+  @media (max-width:820px){ .who-grid{ grid-template-columns:1fr; } }
+  .who-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:1.9rem 1.8rem 2.1rem; box-shadow:var(--shadow-sm); position:relative; overflow:hidden; }
+  .who-card::before{ content:""; position:absolute; inset:0 auto 0 0; width:4px; background:linear-gradient(var(--brass),var(--oxblood)); }
+  .who-tab{ display:inline-block; background:var(--oxblood); color:var(--oxblood-ink); font-family:var(--font-mono); font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; padding:.5em 1em; border-radius:var(--radius); }
+  .who-card h3{ font-size:var(--step-2); margin-top:1.15rem; }
+  .who-card ul{ list-style:none; margin:1.25rem 0 0; padding:0; display:grid; gap:.9rem; }
+  .who-card li{ position:relative; padding-left:1.75em; color:var(--ink-soft); font-size:.97rem; line-height:1.5; }
+  .who-card li::before{ content:""; position:absolute; left:.15em; top:.52em; width:.72em; height:.36em; border-left:2px solid var(--brass); border-bottom:2px solid var(--brass); transform:rotate(-45deg); }
+
   /* ---------- Capabilities grid ---------- */
   .cap-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
   @media (max-width:900px){ .cap-grid{ grid-template-columns:repeat(2,1fr); } }
@@ -319,6 +342,7 @@
       Virtellect<span class="dot">.ai</span>
     </a>
     <nav class="nav-links" aria-label="Primary">
+      <a href="#who">Who it’s for</a>
       <a href="#capabilities">Capabilities</a>
       <a href="#process">How it works</a>
       <a href="#security">Security</a>
@@ -336,9 +360,9 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <span class="eyebrow reveal">AI for personal injury &amp; PIP practices</span>
+        <span class="eyebrow reveal">AI for PIP law offices &amp; injury clinics</span>
         <h1 class="reveal d1">You win cases in the details. We make sure <em>none slip.</em></h1>
-        <p class="lede reveal d2">Virtellect deploys AI trained for the way injury and PIP firms actually run — it reads the medical records, drafts the demand, tracks every deadline, and keeps your client informed. Your team reviews and approves. The pile disappears.</p>
+        <p class="lede reveal d2">Virtellect deploys AI trained for the way PIP law offices and injury clinics actually run — it reads the records, drafts the demands, tracks every claim and deadline, and keeps your clients and patients informed. Your team reviews and approves. The pile disappears.</p>
         <div class="hero-cta reveal d3">
           <a href="#contact" class="btn btn-primary">Book a consultation
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -404,10 +428,43 @@
     <div class="wrap cols">
       <p>Most “office AI” was built for a generic inbox. Personal injury isn’t generic.</p>
       <div class="aside">
-        <p>It’s <b>records, liens, specials, and statutes</b> — and a client who’s hurt and waiting to hear from you. Off-the-shelf assistants don’t know a demand from a deposition. Virtellect is built for the file your practice actually lives in, so it’s useful on day one — not a science project you have to babysit.</p>
+        <p>It’s <b>records, claims, liens, and statutes</b> — and a person who’s hurt, waiting to hear from you. Off-the-shelf assistants don’t know a demand from a deposition or an EOB from an invoice. Virtellect is built for the file your practice actually lives in — law office or clinic — so it’s useful on day one, not a science project you have to babysit.</p>
       </div>
     </div>
   </div>
+
+  <!-- WHO IT'S FOR -->
+  <section id="who">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">Who it’s for</span>
+        <h2>Built for both sides of the injury file.</h2>
+        <p>The office that fights the claim and the clinic that treats the patient live in the same pile — records, claims, deadlines, follow-up. Virtellect carries it for both.</p>
+      </div>
+      <div class="who-grid">
+        <article class="who-card reveal">
+          <span class="who-tab">For law offices</span>
+          <h3>Sign more. Settle faster.</h3>
+          <ul>
+            <li>Every lead answered and screened at any hour — before the firm down the street calls back</li>
+            <li>Records chronologized and demand packages drafted while the file is still fresh</li>
+            <li>Statutes, filing windows, and treatment gaps watched on every matter</li>
+            <li>Clients updated in your firm’s voice — fewer “any news?” calls on your lines</li>
+          </ul>
+        </article>
+        <article class="who-card reveal d1">
+          <span class="who-tab">For clinics &amp; providers</span>
+          <h3>Treat the patient. We’ll chase the claim.</h3>
+          <ul>
+            <li>Accident patients booked the moment they call, with documentation started right</li>
+            <li>Every claim tracked from submission to EOB — nothing ages out in a drawer</li>
+            <li>Reductions and denials flagged early, with the paper trail assembled to contest them</li>
+            <li>Demand letters prepared and balances reconciled when payers go quiet</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
 
   <!-- CAPABILITIES -->
   <section id="capabilities">
@@ -422,7 +479,7 @@
           <div class="num">01</div>
           <svg class="cap-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.4 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2z"/></svg>
           <h3>Intake that never sleeps</h3>
-          <p>Answers the call, text, or web lead at 2 a.m., captures the facts of loss, screens for PIP and coverage, and books the sign-up — so no case walks to the firm down the street.</p>
+          <p>Answers the call, text, or web lead at 2 a.m., captures the facts of loss, screens for PIP and coverage, and books the sign-up or first visit — so no case, and no patient, walks.</p>
         </article>
         <article class="cap reveal d1">
           <div class="num">02</div>
@@ -433,26 +490,26 @@
         <article class="cap reveal d2">
           <div class="num">03</div>
           <svg class="cap-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
-          <h3>Demand packages, drafted</h3>
-          <p>Assembles a first-draft demand from the file — facts, liability, injuries, and a tallied specials ledger — formatted your way and ready for an attorney to sharpen and send.</p>
+          <h3>Demands, drafted</h3>
+          <p>Assembles the first draft from the file — liability demands with a tallied specials ledger for firms, PIP demand letters with the unpaid-claim ledger for clinics — ready to sharpen and send.</p>
         </article>
         <article class="cap reveal">
           <div class="num">04</div>
           <svg class="cap-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
           <h3>The deadline guardian</h3>
-          <p>Tracks statutes of limitations, PIP filing windows, and treatment gaps — and escalates before anything gets close, so a missed date never becomes a malpractice call.</p>
+          <p>Tracks statutes of limitations, PIP filing windows, payer response clocks, and treatment gaps — and escalates before anything gets close, so a missed date never becomes a lost claim.</p>
         </article>
         <article class="cap reveal d1">
           <div class="num">05</div>
           <svg class="cap-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 12h5"/></svg>
-          <h3>Client communication</h3>
-          <p>Sends status updates, checks on treatment, and answers “what’s happening with my case?” — in your firm’s voice, on time, so your clients feel represented, not forgotten.</p>
+          <h3>Client &amp; patient communication</h3>
+          <p>Sends status updates, checks on treatment, and answers “what’s happening with my case?” — in your voice, on time, so the people you serve feel looked after, not forgotten.</p>
         </article>
         <article class="cap reveal d2">
           <div class="num">06</div>
           <svg class="cap-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/></svg>
-          <h3>Liens &amp; billing reconciled</h3>
-          <p>Reconciles provider ledgers, tracks liens and balances, and flags what threatens the net to your client — so settlement math is right the first time.</p>
+          <h3>Claims, EOBs &amp; liens reconciled</h3>
+          <p>Tracks every claim to its EOB, flags reductions and denials with the documentation to contest them, and keeps lien, balance, and settlement math right the first time.</p>
         </article>
       </div>
     </div>
@@ -510,7 +567,7 @@
         </div>
         <div class="stat reveal d2">
           <div class="big">Zero</div>
-          <p class="lbl">Deadlines left to memory. Every statute and filing window is watched and escalated before it’s close.</p>
+          <p class="lbl">Deadlines left to memory. Every statute, filing window, and payer clock is watched and escalated before it’s close.</p>
         </div>
       </div>
     </div>
@@ -540,7 +597,7 @@
           </div>
           <div class="trust-item">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 15l2 2 4-4"/></svg>
-            <div><b>Handled with attorney–client privilege in mind.</b><span>Access controls and handling designed for confidential legal work.</span></div>
+            <div><b>Privilege- and PHI-aware by design.</b><span>Handling built for confidential legal work and protected health information alike.</span></div>
           </div>
         </div>
       </div>
@@ -553,7 +610,7 @@
       <div class="contact-aside reveal">
         <span class="eyebrow">Request a briefing</span>
         <h2>See it run on a file like yours.</h2>
-        <p>Tell us how your practice works and we’ll show you exactly where Virtellect earns its keep — no generic demo, no jargon. Just your workflow, handled.</p>
+        <p>Law office or clinic — tell us how your practice runs and we’ll show you exactly where Virtellect earns its keep on a file like yours. No generic demo, no jargon.</p>
         <div class="contact-line">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
           hello@virtellect.ai
@@ -588,8 +645,10 @@
             <select id="role" name="role" required>
               <option value="" selected disabled>Select…</option>
               <option>Attorney / Partner</option>
+              <option>Clinic owner / Medical director</option>
               <option>Firm administrator / Operations</option>
               <option>Paralegal / Case manager</option>
+              <option>Billing / Collections manager</option>
               <option>Intake specialist</option>
               <option>PIP / Claims professional</option>
               <option>Other</option>
@@ -603,8 +662,9 @@
             <option>Intake &amp; new-client response</option>
             <option>Medical records review</option>
             <option>Demand drafting</option>
+            <option>Claims, EOBs &amp; denials</option>
             <option>Deadlines &amp; docketing</option>
-            <option>Client communication</option>
+            <option>Client &amp; patient communication</option>
             <option>Liens &amp; billing</option>
             <option>All of the above</option>
           </select>
@@ -637,7 +697,7 @@
         <svg class="mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 16l18 34 18-34" fill="none" stroke="var(--brass-lit)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Virtellect<span class="dot" style="color:var(--brass-lit)">.ai</span>
       </div>
-      <p class="foot-tag">AI built for the injury file. Deployed to your practice, reviewed by your team, trusted with your clients.</p>
+      <p class="foot-tag">AI built for the injury file — for the law offices that fight it and the clinics that treat it.</p>
     </div>
     <nav class="foot-nav" aria-label="Footer">
       <div class="foot-col">

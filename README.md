@@ -2,9 +2,14 @@
 
 The marketing site for **Virtellect** — AI built for personal injury &amp; PIP practices.
 
-It's a single, self-contained `index.html`: no build step, no framework, no external
-dependencies. Every font is a system stack and every icon is inline SVG, so it loads
-instantly and works offline. That also makes it trivial to host anywhere.
+It's a self-contained `index.html` plus one share image (`og-card.png`): no build step,
+no framework, no external dependencies. Every font is a system stack and every icon is
+inline SVG, so it loads instantly and works offline. That also makes it trivial to host
+anywhere.
+
+**Upload both files to the web root together.** `og-card.png` is the card that shows
+when the link is texted, posted, or shared on LinkedIn/Facebook/iMessage — the page
+references it at `https://virtellect.ai/og-card.png`.
 
 ## Design at a glance
 
@@ -35,7 +40,7 @@ Because it's a static file, any static host works:
 - **Vercel** — `vercel --prod` from this folder.
 - **Netlify** — drag the folder onto the dashboard, or `netlify deploy --prod`.
 - **GitHub Pages** — enable Pages on this repo/branch; `index.html` is served at the root.
-- **Cloudflare Pages / S3 / any web server** — upload `index.html`.
+- **Cloudflare Pages / S3 / any web server** — upload `index.html` and `og-card.png`.
 
 Point the `virtellect.ai` domain at whichever host you choose.
 
@@ -66,7 +71,9 @@ endpoint) falls back to opening the visitor's email client.
       make sure it matches what Virtellect actually does before publishing.
 - [ ] **Add real proof** when you have it — client outcomes, a named case study, logos.
       The stat band is written as honest capability statements, not invented metrics.
-- [ ] **Swap the OG image** — add a share image and set `og:image` in the `<head>`.
+- [ ] **Share image is included** — make sure `og-card.png` sits next to `index.html` at
+      the web root. Test it by pasting the live URL into LinkedIn's Post Inspector or
+      a text message after launch.
 - [ ] **Optional:** swap the system serif for a licensed display face (e.g. a self-hosted
       `@font-face`) if you want a fully bespoke wordmark.
 
